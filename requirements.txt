@@ -1,6 +1,8 @@
+gspread
 google-auth
 google-auth-oauthlib
 google-auth-httplib2
-gspread
-requests
+oauth2client
 beautifulsoup4
+requests
+selenium 
