@@ -63,7 +63,7 @@ jobs:
       # 7️⃣ 실행 결과 로그 저장
       - name: 로그 아티팩트 저장
         if: always()  # 성공/실패와 관계없이 항상 실행
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: keyword-collector-logs
           path: |
