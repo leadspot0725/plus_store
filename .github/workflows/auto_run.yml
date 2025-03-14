@@ -37,18 +37,42 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 5️⃣ Chrome 설치 확인 및 업데이트
-      - name: Chrome 설치 확인
+      # 5️⃣ Chrome 및 ChromeDriver 설치
+      - name: Chrome 및 ChromeDriver 설치
         run: |
-          echo "🟢 현재 설치된 Chrome 버전 확인"
-          google-chrome --version || echo "⚠️ Chrome이 설치되지 않음"
-          
-          echo "🟢 Chrome 최신 버전으로 업데이트"
+          # Chrome 설치 확인 및 업데이트
+          google-chrome --version || echo "Chrome이 설치되지 않음"
           sudo apt-get update
           sudo apt-get install -y google-chrome-stable
-          
-          echo "🟢 업데이트 후 Chrome 버전 확인"
           google-chrome --version
+          
+          # ChromeDriver 직접 설치
+          CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d. -f1)
+          echo "Chrome 버전: $CHROME_VERSION"
+          
+          # LATEST_RELEASE_$CHROME_VERSION 파일 다운로드 시도
+          wget -q "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION" -O chromedriver_version.txt || echo "LATEST_RELEASE 다운로드 실패"
+          
+          # 파일이 존재하고 내용이 있는지 확인
+          if [ -s chromedriver_version.txt ]; then
+            CHROMEDRIVER_VERSION=$(cat chromedriver_version.txt)
+            echo "ChromeDriver 버전: $CHROMEDRIVER_VERSION"
+          else
+            # 최신 버전으로 대체
+            echo "정확한 Chrome 버전에 맞는 ChromeDriver를 찾을 수 없어 최신 버전 사용"
+            wget -q "https://chromedriver.storage.googleapis.com/LATEST_RELEASE" -O chromedriver_version.txt
+            CHROMEDRIVER_VERSION=$(cat chromedriver_version.txt)
+            echo "ChromeDriver 최신 버전: $CHROMEDRIVER_VERSION"
+          fi
+          
+          # ChromeDriver 다운로드 및 설치
+          wget -q "https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip"
+          unzip chromedriver_linux64.zip
+          chmod +x chromedriver
+          sudo mv chromedriver /usr/local/bin/
+          
+          # 설치 확인
+          chromedriver --version
 
       # 6️⃣ 스크립트 실행 (연관 키워드 크롤링)
       - name: Run Python Keyword Collector
@@ -65,3 +89,13 @@ jobs:
           path: |
             keyword_collector.log
             *.log
+
+      # 8️⃣ 실행 상태 알림
+      - name: 실행 상태 알림
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ 키워드 수집 작업이 성공적으로 완료되었습니다."
+          else
+            echo "❌ 키워드 수집 작업이 실패했습니다."
+          fi
