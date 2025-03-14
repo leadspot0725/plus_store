@@ -2,57 +2,37 @@ name: Keyword Auto Collector
 
 on:
   schedule:
-    - cron: '0 21 * * *'  # 한국 시간 아침 6시 (UTC 기준 21:00)
-  workflow_dispatch:  # 수동 실행 가능
+    - cron: "0 21 * * *"  # 한국 시간 오전 6시 (GitHub Actions는 UTC 기준)
+  workflow_dispatch:  # 수동 실행도 가능
 
 jobs:
   collect_keywords:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: ✅ 저장소 체크아웃
         uses: actions/checkout@v3
 
-      - name: Set up Python
+      - name: ✅ Python 3.10 설정
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          sudo apt-get update
-          sudo apt-get install -y unzip curl wget
-
-      - name: Install Google Chrome & ChromeDriver
-        run: |
-          # 기존 Chrome이 설치된 경우 제거
-          sudo apt-get remove -y google-chrome-stable || true
-          sudo apt-get autoremove -y || true
-          sudo apt-get clean
-
-          # 최신 Chrome 설치
-          wget -q -O google-chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-          sudo dpkg -i google-chrome.deb || sudo apt-get -f install -y
-          rm google-chrome.deb
-
-          # Chrome 버전 확인 후 ChromeDriver 다운로드
-          CHROME_VERSION=$(google-chrome --version | grep -oP '[0-9]+\.[0-9]+\.[0-9]+')
-          wget -q "https://chromedriver.storage.googleapis.com/${CHROME_VERSION}/chromedriver_linux64.zip" -O chromedriver.zip
-          unzip chromedriver.zip
-          sudo mv chromedriver /usr/local/bin/
-          rm chromedriver.zip
-
-      - name: Set up Google Cloud authentication
+      - name: ✅ Google Cloud 인증 (워크로드 아이덴티티 사용)
         uses: google-github-actions/auth@v1
         with:
           workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.SERVICE_ACCOUNT }}
-          create_credentials_file: true
           export_environment_variables: true
 
-      - name: Run keyword collector script
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+      - name: ✅ 필요 라이브러리 설치
+        run: pip install -r requirements.txt
+
+      - name: ✅ Chrome 및 ChromeDriver 설치
         run: |
-          python keyword_collector.py
+          sudo apt update
+          sudo apt install -y google-chrome-stable
+          pip install chromedriver-autoinstaller
+
+      - name: ✅ 연관 키워드 크롤링 및 Google Sheets 업데이트
+        run: python keyword_collector.py
