@@ -37,35 +37,12 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 5️⃣ 최신 Chrome 및 ChromeDriver 설치 (EOF 오류 수정)
-      - name: 최신 Chrome & ChromeDriver 설치
+      # 5️⃣ Chrome 및 ChromeDriver 설치 제거 (테스트 실행)
+      - name: Chrome & ChromeDriver 설치 확인
         run: |
-          sudo apt-get update
-          sudo apt-get install -y wget unzip jq
-
-          # 최신 Chrome 설치
-          wget -q -O google-chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-          sudo dpkg -i google-chrome.deb || sudo apt-get install -f -y
-
-          # Chrome 버전 확인 (EOF 오류 수정)
-          CHROME_VERSION=$(google-chrome --version | awk '{print $3}')
-          echo "Chrome Version: $CHROME_VERSION"
-
-          # ChromeDriver 최신 버전 찾기 및 다운로드
-          DRIVER_URL=$(curl -s "https://googlechromelabs.github.io/chrome-for-testing/latest-versions-per-milestone.json" | jq -r '.milestones["'${CHROME_VERSION%%.*}'"].downloads.chromeDriver[] | select(.platform=="linux64").url')
-          
-          if [[ -z "$DRIVER_URL" ]]; then
-            echo "ChromeDriver URL을 찾을 수 없습니다. Chrome 버전: $CHROME_VERSION"
-            exit 1
-          fi
-
-          wget -q "$DRIVER_URL" -O chromedriver.zip
-          unzip chromedriver.zip
-          sudo mv chromedriver /usr/local/bin/
-          sudo chmod +x /usr/local/bin/chromedriver
-
-          # ChromeDriver 버전 확인
-          chromedriver --version
+          echo "🟢 현재 설치된 Chrome 및 ChromeDriver 확인"
+          google-chrome --version || echo "⚠️ Chrome이 설치되지 않음"
+          chromedriver --version || echo "⚠️ ChromeDriver가 설치되지 않음"
 
       # 6️⃣ 스크립트 실행 (연관 키워드 크롤링)
       - name: Run Python Keyword Collector
