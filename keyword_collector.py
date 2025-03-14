@@ -199,7 +199,7 @@ def main():
     
     # 스프레드시트 설정
     SHEET_ID = "1wxvKTda74w3KwyopgYAwAO3cgkShq6itMfS4GCE6Gp0"  # Google Sheets ID
-    WORKSHEET_NAME = "Sheet1"  # 시트 탭 이름
+    WORKSHEET_NAME = "시트1"  # 시트 탭 이름
     
     total_stats = {"processed": 0, "success": 0, "fail": 0}
     
