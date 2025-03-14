@@ -1,8 +1,8 @@
+requests
+beautifulsoup4
 gspread
 google-auth
 google-auth-oauthlib
 google-auth-httplib2
-oauth2client
-beautifulsoup4
-requests
-selenium 
+selenium
+chromedriver-autoinstaller
