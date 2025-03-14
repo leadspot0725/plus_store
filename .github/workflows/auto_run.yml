@@ -2,6 +2,8 @@ name: Run Keyword Collector
 
 on:
   workflow_dispatch:  # 수동 실행 가능
+  schedule:
+    - cron: '0 0 * * *'  # 매일 자정에 실행 (UTC 기준)
 
 permissions:
   id-token: write  # Workload Identity Federation을 위한 권한 설정
@@ -10,8 +12,9 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest  # 최신 Ubuntu 환경 사용
-    steps:
+    timeout-minutes: 30  # 최대 실행 시간 설정
 
+    steps:
       # 1️⃣ 저장소 체크아웃 (GitHub Actions에서 코드 가져오기)
       - name: 저장소 체크아웃
         uses: actions/checkout@v4
@@ -21,6 +24,7 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
+          cache: 'pip'  # 의존성 캐싱 활성화
 
       # 3️⃣ Google Cloud 인증 (Workload Identity Federation)
       - name: Google Cloud 인증 (OIDC 사용)
@@ -37,13 +41,42 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 5️⃣ Chrome 및 ChromeDriver 설치 제거 (테스트 실행)
-      - name: Chrome & ChromeDriver 설치 확인
+      # 5️⃣ Chrome 설치 확인 및 업데이트
+      - name: Chrome 설치 확인
         run: |
-          echo "🟢 현재 설치된 Chrome 및 ChromeDriver 확인"
+          echo "🟢 현재 설치된 Chrome 버전 확인"
           google-chrome --version || echo "⚠️ Chrome이 설치되지 않음"
-          chromedriver --version || echo "⚠️ ChromeDriver가 설치되지 않음"
+          
+          echo "🟢 Chrome 최신 버전으로 업데이트"
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+          
+          echo "🟢 업데이트 후 Chrome 버전 확인"
+          google-chrome --version
 
       # 6️⃣ 스크립트 실행 (연관 키워드 크롤링)
       - name: Run Python Keyword Collector
         run: python keyword_collector.py
+        env:
+          PYTHONUNBUFFERED: 1  # 로그 버퍼링 방지
+
+      # 7️⃣ 실행 결과 로그 저장
+      - name: 로그 아티팩트 저장
+        if: always()  # 성공/실패와 관계없이 항상 실행
+        uses: actions/upload-artifact@v3
+        with:
+          name: keyword-collector-logs
+          path: |
+            keyword_collector.log
+            *.log
+
+      # 8️⃣ 상태 알림 (선택 사항)
+      - name: 실행 상태 알림
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ 키워드 수집 작업이 성공적으로 완료되었습니다."
+          else
+            echo "❌ 키워드 수집 작업이 실패했습니다."
+            # 여기에 Slack, 이메일 등의 알림 로직을 추가할 수 있습니다
+          fi
