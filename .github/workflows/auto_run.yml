@@ -2,8 +2,12 @@ name: Keyword Auto Collector
 
 on:
   schedule:
-    - cron: "0 21 * * *"  # 한국 시간 오전 6시 (GitHub Actions는 UTC 기준)
-  workflow_dispatch:  # 수동 실행도 가능
+    - cron: "0 21 * * *"  # 한국 시간 오전 6시 실행
+  workflow_dispatch:  # 수동 실행 가능
+
+permissions:
+  id-token: write  # Google Cloud 인증을 위해 ID 토큰 권한 필요
+  contents: read   # 저장소 읽기 권한 필요
 
 jobs:
   collect_keywords:
