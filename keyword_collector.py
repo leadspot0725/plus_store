@@ -1,12 +1,15 @@
 import gspread
-import google.auth  # ✅ google.auth 추가
+import google.auth
 from google.auth.transport.requests import AuthorizedSession
+import requests  
+from bs4 import BeautifulSoup
+
 
 # 구글 시트 연동
 def connect_google_sheet(sheet_id, worksheet_name):
     credentials, project = google.auth.default(scopes=['https://www.googleapis.com/auth/spreadsheets'])
     
-    # ✅ 올바른 gspread 클라이언트 생성 방식
+    #올바른 gspread 클라이언트 생성 방식
     gc = gspread.Client(auth=credentials, session=AuthorizedSession(credentials))
     
     sheet = gc.open_by_key(sheet_id).worksheet(worksheet_name)
