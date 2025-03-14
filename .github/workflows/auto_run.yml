@@ -6,7 +6,6 @@ on:
     - cron: '0 0 * * *'  # 매일 자정에 실행 (UTC 기준)
 
 permissions:
-  id-token: write  # Workload Identity Federation을 위한 권한 설정
   contents: read   # Repository 파일 읽기 권한
 
 jobs:
@@ -26,14 +25,11 @@ jobs:
           python-version: "3.10"
           cache: 'pip'  # 의존성 캐싱 활성화
 
-      # 3️⃣ Google Cloud 인증 (Workload Identity Federation)
-      - name: Google Cloud 인증 (OIDC 사용)
-        uses: google-github-actions/auth@v1
-        with:
-          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.SERVICE_ACCOUNT }}
-          create_credentials_file: true
-          export_environment_variables: true
+      # 3️⃣ Google Cloud 인증 (서비스 계정 키 사용)
+      - name: Google Cloud 인증 설정
+        run: |
+          echo '${{ secrets.GOOGLE_CREDENTIALS }}' > /tmp/credentials.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/credentials.json" >> $GITHUB_ENV
 
       # 4️⃣ 필수 라이브러리 설치
       - name: 필요한 Python 패키지 설치
@@ -69,14 +65,3 @@ jobs:
           path: |
             keyword_collector.log
             *.log
-
-      # 8️⃣ 상태 알림 (선택 사항)
-      - name: 실행 상태 알림
-        if: always()
-        run: |
-          if [ "${{ job.status }}" == "success" ]; then
-            echo "✅ 키워드 수집 작업이 성공적으로 완료되었습니다."
-          else
-            echo "❌ 키워드 수집 작업이 실패했습니다."
-            # 여기에 Slack, 이메일 등의 알림 로직을 추가할 수 있습니다
-          fi
