@@ -1,48 +1,29 @@
 name: Run Keyword Collector
 
 on:
-  workflow_dispatch:  # 수동 실행 가능하도록 설정
+  workflow_dispatch:  # 수동 실행 가능
 
 permissions:
-  contents: read
-  id-token: write  # GitHub Actions에서 Google Cloud 인증을 위한 권한 추가
+  id-token: write  # Workload Identity Federation을 위한 권한 설정
+  contents: read   # Repository 파일 읽기 권한
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # 최신 Ubuntu 환경에서 실행
+    runs-on: ubuntu-latest  # 최신 Ubuntu 환경 사용
     steps:
-      - name: 🔹 저장소 Checkout
+
+      # 1️⃣ 저장소 체크아웃 (GitHub Actions에서 코드 가져오기)
+      - name: 저장소 체크아웃
         uses: actions/checkout@v4
 
-      - name: 🔹 Python 3.10 설정
+      # 2️⃣ Python 설정 (버전 3.10 사용)
+      - name: Python 3.10 설정
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
-      - name: 🔹 필수 패키지 설치
-        run: |
-          sudo apt update && sudo apt install -y unzip curl wget
-          sudo apt install -y python3-pip python3-venv
-
-      - name: 🔹 최신 Chrome 및 ChromeDriver 설치
-        run: |
-          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
-          echo 'deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main' | sudo tee /etc/apt/sources.list.d/google-chrome.list
-          sudo apt update
-          sudo apt install -y google-chrome-stable
-          CHROME_VERSION=$(google-chrome --version | grep -oP '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+')
-          wget https://chromedriver.storage.googleapis.com/$CHROME_VERSION/chromedriver_linux64.zip
-          unzip chromedriver_linux64.zip
-          sudo mv chromedriver /usr/local/bin/
-          sudo chmod +x /usr/local/bin/chromedriver
-
-      - name: 🔹 Python 의존 패키지 설치
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: 🔹 Google Cloud 인증 (Workload Identity Federation 사용)
-        id: auth
+      # 3️⃣ Google Cloud 인증 (Workload Identity Federation)
+      - name: Google Cloud 인증 (OIDC 사용)
         uses: google-github-actions/auth@v1
         with:
           workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
@@ -50,9 +31,25 @@ jobs:
           create_credentials_file: true
           export_environment_variables: true
 
-      - name: 🔹 환경 변수 설정
+      # 4️⃣ 필수 라이브러리 설치
+      - name: 필요한 Python 패키지 설치
         run: |
-          echo "GOOGLE_APPLICATION_CREDENTIALS=${{ env.GOOGLE_GHA_CREDS_PATH }}" >> $GITHUB_ENV
+          pip install --upgrade pip
+          pip install -r requirements.txt
 
-      - name: 🔹 키워드 크롤링 및 Google Sheets 업데이트 실행
-        run: python keyword_collector.py
+      # 5️⃣ 최신 Chrome 및 ChromeDriver 설치
+      - name: 최신 Chrome & ChromeDriver 설치
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget unzip
+          
+          # Chrome 최신 버전 설치
+          wget -q -O google-chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo dpkg -i google-chrome.deb || sudo apt-get install -f -y
+          
+          # Chrome 버전 확인
+          CHROME_VERSION=$(google-chrome --version | grep -oP '[0-9]+(\.[0-9]+)*')
+          echo "Chrome Version: $CHROME_VERSION"
+          
+          # ChromeDriver 다운로드
+          DRIVER_VERSION=$(curl -s "https://googlechromelabs.github.io/chrome-for-testing/latest-versions-per-milestone.json" | jq -r '.milestones["'${CHROME_VERSION%%.*}'"].downloads.chromeDriver[] | sele
