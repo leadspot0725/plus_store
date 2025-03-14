@@ -23,7 +23,7 @@ def get_related_keywords(keyword):
 
 def main():
     SHEET_ID = '1wxvKTda74w3KwyopgYAwAO3cgkShq6itMfS4GCE6Gp0'
-    SHEET_NAME = 'Sheet1'
+    SHEET_NAME = '시트1'
 
     sheet = connect_google_sheet(sheet_id=SHEET_ID, worksheet_name=SHEET_NAME)
     rows = sheet.get_all_records()
